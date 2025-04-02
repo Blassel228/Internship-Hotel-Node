@@ -1,0 +1,51 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: hotel_app
+    restart: unless-stopped
+    ports:
+      - ${PORT}:${PORT}
+    expose:
+      - ${PORT}
+    networks:
+      - rp-network
+    depends_on:
+      - db
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+
+  db:
+    image: postgres:16.4-alpine3.20
+    container_name: hotel_db
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -h localhost -d ${DB_NAME}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 5s
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    networks:
+      - rp-network
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
+
+networks:
+  rp-network:
+    external: false
